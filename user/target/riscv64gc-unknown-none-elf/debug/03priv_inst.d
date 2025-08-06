@@ -1,0 +1,1 @@
+/root/rcore/user/target/riscv64gc-unknown-none-elf/debug/03priv_inst: /root/rcore/user/src/bin/03priv_inst.rs /root/rcore/user/src/console.rs /root/rcore/user/src/lang_items.rs /root/rcore/user/src/lib.rs /root/rcore/user/src/syscall.rs
