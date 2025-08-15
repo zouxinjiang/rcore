@@ -33,12 +33,12 @@ impl KernelStack {
         self.data.as_ptr() as usize + KERNEL_STACK_SIZE
     }
     
-    pub fn push_context(&self, ctx: TrapContext) -> & mut TrapContext {
-        let ctx_ptr = (self.get_sp() - core::mem::size_of::<TrapContext>()) as *mut TrapContext;
+    pub fn push_context(&self, cx: TrapContext) -> &'static mut TrapContext {
+        let cx_ptr = (self.get_sp() - core::mem::size_of::<TrapContext>()) as *mut TrapContext;
         unsafe {
-            *ctx_ptr = ctx;
-            ctx_ptr.as_mut().unwrap()
+            *cx_ptr = cx;
         }
+        unsafe { cx_ptr.as_mut().unwrap() }
     }
 }
 
@@ -51,14 +51,19 @@ impl UserStack {
 struct AppManager {
     num_app: usize,
     current_app: usize,
-    app_start: [usize; MAX_APP_NUM+1],
+    app_start: [usize; MAX_APP_NUM + 1],
 }
 
 impl AppManager {
     pub fn print_app_info(&self) {
         println!("[kernel] num_app = {}", self.num_app);
         for i in 0..self.num_app {
-            println!("[Kernel] app_{} [{:#x}, {:#x}]", i, self.app_start[i], self.app_start[i+1]);
+            println!(
+                "[kernel] app_{} [{:#x}, {:#x}]", 
+                i, 
+                self.app_start[i], 
+                self.app_start[i + 1]
+            );
         }
     }
 
@@ -67,7 +72,7 @@ impl AppManager {
             println!("All applications completed!");
             shutdown(false);
         }
-        println!("[kernel] loading app_{}", app_id);
+        println!("[kernel] Loading app_{}", app_id);
         unsafe {
             core::slice::from_raw_parts_mut(APP_BASE_ADDRESS as *mut u8, APP_SIZE_LIMIT).fill(0);
             let app_src = core::slice::from_raw_parts(
@@ -88,21 +93,21 @@ impl AppManager {
     }
 }
 
-lazy_static!{
+lazy_static! {
     static ref APP_MANAGER: UPSafeCell<AppManager> = unsafe {
         UPSafeCell::new({
             unsafe extern "C" {
                 safe fn _num_app();
             }
             let num_app_ptr = _num_app as usize as *const usize;
-            let num_app = num_app_ptr.read_volatite();
+            let num_app = num_app_ptr.read_volatile();
             let mut app_start: [usize; MAX_APP_NUM + 1] = [0; MAX_APP_NUM + 1];
             let app_start_raw: &[usize] = core::slice::from_raw_parts(num_app_ptr.add(1), num_app + 1);
             app_start[..=num_app].copy_from_slice(app_start_raw);
             AppManager {
-                num_app: num_app,
+                num_app,
                 current_app: 0,
-                app_start: app_start,
+                app_start,
             }
         })
     };
@@ -123,12 +128,12 @@ pub fn run_next_app() -> ! {
     app_manager.move_to_next_app();
     drop(app_manager);
     unsafe extern "C" {
-        unsafe fn __restore(cx_address: usize);
+        unsafe fn __restore(cx_addr: usize);
     }
     unsafe {
         __restore(KERNEL_STACK.push_context(TrapContext::app_init_context(
-                    APP_BASE_ADDRESS, 
-                    USER_STACK.get_sp(),
+            APP_BASE_ADDRESS,
+            USER_STACK.get_sp(),
         )) as *const _ as usize);
     }
     panic!("Unreachable in batch::run_current_app!");

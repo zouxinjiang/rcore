@@ -3,7 +3,7 @@ use riscv::register::sstatus::{self, SPP, Sstatus};
 #[repr(C)]
 pub struct TrapContext  {
     pub x: [usize; 32],
-    pub sstatus: sstatus,
+    pub sstatus: Sstatus,
     pub sepc: usize,
 }
 

@@ -4,8 +4,8 @@ kernel: src/main.rs
 	cargo build --release
 
 os.bin: kernel
-	#rust-objcopy --strip-all target/riscv64gc-unknown-none-elf/release/os -O binary target/riscv64gc-unknown-none-elf/release/os.bin
-	mv target/riscv64gc-unknown-none-elf/release/os target/riscv64gc-unknown-none-elf/release/os.bin
+	rust-objcopy --strip-all target/riscv64gc-unknown-none-elf/release/os -O binary target/riscv64gc-unknown-none-elf/release/os.bin
+	#mv target/riscv64gc-unknown-none-elf/release/os target/riscv64gc-unknown-none-elf/release/os.bin
 
 debug: ../bootloader/rustsbi-qemu.bin os.bin
 	qemu-system-riscv64 \
